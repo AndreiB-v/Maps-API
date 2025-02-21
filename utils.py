@@ -1,3 +1,7 @@
+import os
+import sys
+
+import pygame
 import requests
 
 # Геокодер
@@ -23,3 +27,23 @@ def get_coord_by_name(object_name) -> str:
 
     except Exception:
         return "Название объекта на карте задано не верно"
+
+
+def get_image(coord=tuple, spn=tuple) -> pygame.surface.Surface:
+    map_request = f"{server_address_card}apikey={api_key_card}" \
+                  f"&ll={coord[1]},{coord[0]}&spn={spn[0]},{spn[1]}"
+    response = requests.get(map_request)
+
+    if not response:
+        print("Ошибка выполнения запроса:")
+        print(map_request)
+        print("Http статус:", response.status_code, "(", response.reason, ")")
+        sys.exit(1)
+
+    # Запишем полученное изображение в файл.
+    map_file = "map.png"
+    with open(map_file, "wb") as file:
+        file.write(response.content)
+    current_image = pygame.image.load(map_file)
+    os.remove(map_file)
+    return current_image

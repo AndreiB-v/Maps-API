@@ -1,4 +1,3 @@
-import os
 import sys
 
 import pygame
@@ -21,25 +20,6 @@ running = True
 fps = 60
 
 current_image = pygame.surface.Surface(screen.get_size())
-
-
-def get_image(coord=tuple, spn=tuple) -> pygame.surface.Surface:
-    map_request = f"{server_address}apikey={api_key}&ll={coord[1]},{coord[0]}&spn={spn[0]},{spn[1]}"
-    response = requests.get(map_request)
-
-    if not response:
-        print("Ошибка выполнения запроса:")
-        print(map_request)
-        print("Http статус:", response.status_code, "(", response.reason, ")")
-        sys.exit(1)
-
-    # Запишем полученное изображение в файл.
-    map_file = "map.png"
-    with open(map_file, "wb") as file:
-        file.write(response.content)
-    current_image = pygame.image.load(map_file)
-    os.remove(map_file)
-    return current_image
 
 
 while running:
