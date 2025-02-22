@@ -11,6 +11,7 @@ api_key_geocode = '8013b162-6b42-4997-9691-77b7074026e0'
 server_address_card = 'https://static-maps.yandex.ru/v1?'
 api_key_card = 'f3a0fe3a-b07e-4840-a1da-06f18b2ddf13'
 
+session = requests.session() # теперь все get запросы делать через переменную session, если нужно часто обращаться к одному и тому же сайту!
 
 def get_coord_by_name(object_name) -> str:
     '''Функция для получения координат объекта по его названию'''
@@ -23,16 +24,17 @@ def get_coord_by_name(object_name) -> str:
         toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
         toponym_coodrinates = toponym["Point"]["pos"]
 
-        return type(toponym_coodrinates)
+        return toponym_coodrinates
 
     except Exception:
         return "Название объекта на карте задано не верно"
 
 
 def get_image(coord=tuple, spn=tuple) -> pygame.surface.Surface:
+    '''Функция для отображения карты по заданным координатам'''
     map_request = f"{server_address_card}apikey={api_key_card}" \
-                  f"&ll={coord[1]},{coord[0]}&spn={spn[0]},{spn[1]}"
-    response = requests.get(map_request)
+                  f"&ll={coord[0]},{coord[1]}&spn={spn[0]},{spn[1]}"
+    response = session.get(map_request)
 
     if not response:
         print("Ошибка выполнения запроса:")
