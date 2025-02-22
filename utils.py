@@ -16,7 +16,7 @@ api_key_card = 'f3a0fe3a-b07e-4840-a1da-06f18b2ddf13'
 session = requests.session()
 
 
-def get_coord_by_name(object_name) -> str:
+def get_coord_by_name(object_name=str) -> str:
     """Функция для получения координат объекта по его названию"""
     try:
         geocoder_request = f'{server_address_geocode}apikey={api_key_geocode}&geocode={object_name}&format=json'
@@ -34,11 +34,10 @@ def get_coord_by_name(object_name) -> str:
 
 
 def get_image(coord=tuple, spn=tuple) -> pg.surface.Surface:
-    '''Функция для отображения карты по заданным координатам'''
+    """Функция для отображения карты по заданным координатам"""
 
     # Получаем цвет темы
-    with open("settings.json") as file:
-        theme = json.load(file)["theme"]
+    theme = get_theme()
 
     map_request = f"{server_address_card}apikey={api_key_card}" \
                   f"&ll={coord[0]},{coord[1]}&spn={spn[0]},{spn[1]}&size=650,450&theme={theme}"
@@ -61,7 +60,7 @@ def get_image(coord=tuple, spn=tuple) -> pg.surface.Surface:
 
 
 def change_theme():
-    '''Функция вызываемая кнопкой изменения темы'''
+    """Функция вызываемая кнопкой изменения темы"""
 
     # Получаем json
     with open("settings.json") as file:
@@ -74,3 +73,32 @@ def change_theme():
     with open("settings.json", "w") as file:
         json.dump(settings, file)
 
+    import screen as sc
+    sc.current_image = get_image(sc.coordinates, sc.current_spn)
+
+
+def get_theme():
+    with open("settings.json") as file:
+        settings = json.load(file)
+    return settings['theme']
+
+
+# Функция для добавления изображений
+def load_image(filename=str, mode=str) -> pg.surface.Surface:
+    """Загружает изображение"""
+
+    fullname = os.path.join('data', filename)
+    if not os.path.isfile(fullname):
+        print(f"Файл с изображением '{fullname}' не найден")
+        sys.exit()
+    image = pg.image.load(fullname)
+
+    if mode:
+        # мод хромакея, удаляет задний фон
+        if 'CHROMAKEY' in mode:
+            image = image.convert()
+            if mode == -1:
+                color_key = image.get_at((0, 0))
+            image.set_colorkey(color_key)
+        image = image.convert_alpha()
+    return image
