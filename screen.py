@@ -1,10 +1,10 @@
 import pygame
 import utils as ut
 
-from utils import get_coord_by_name
 
-coordinates = str(get_coord_by_name("Красная площадь, 1")).split()
-current_spn = [0.003, 0.003]
+coordinates = str(ut.get_coord_by_name("Красная площадь, 1")).split()
+current_spn = [0.001, 0.001]
+factor = 1
 
 # Инициализируем pygame
 pygame.init()
@@ -23,13 +23,18 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_w:
-                current_spn[0] += 2 * 0.0005
-                current_spn[1] += 2 * 0.0005
+                 if factor < 15:
+                    current_spn[0] += 2 ** factor * 0.0005
+                    current_spn[1] += 2 ** factor * 0.0005
+                    factor += 1
             if event.key == pygame.K_s:
-                current_spn[0] -= 2 * 0.0005
-                current_spn[1] -= 2 * 0.0005
+                if factor > 0:
+                    current_spn[0] = 2 ** factor * 0.0005
+                    current_spn[1] = 2 ** factor * 0.0005
+                    factor -= 1
             if event.key == pygame.K_UP:
                 print("Вверх")
+                ut.change_theme()
             if event.key == pygame.K_DOWN:
                 print("Вниз")
             if event.key == pygame.K_RIGHT:
