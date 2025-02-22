@@ -27,7 +27,7 @@ while running:
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_w:
                 print("Вверх")
-                ut.change_theme()
+                ut.change_theme() # Вызывать в чекбоксе
             if event.key == pg.K_s:
                 print("Вниз")
             if event.key == pg.K_d:
