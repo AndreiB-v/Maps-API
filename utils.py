@@ -63,6 +63,8 @@ def get_object_json(object_name: str) -> dict or None:
     try:
         geocoder_request = f'{server_address_geocode}apikey={api_key_geocode}&geocode={object_name}&format=json'
         response = requests.get(geocoder_request)
+
+        # Получаем координаты объекта
         json_response = response.json()
         toponym = json_response["response"]["GeoObjectCollection"]
         return toponym
@@ -70,7 +72,7 @@ def get_object_json(object_name: str) -> dict or None:
         return None
 
 
-def get_image(coord: tuple, spn: tuple, bbox=None) -> pg.surface.Surface:
+def get_image(coord: tuple, spn: tuple, bbox=None, is_mark=None) -> pg.surface.Surface:
     """Функция для отображения карты по заданным координатам"""
 
     # Получаем цвет темы
@@ -78,6 +80,10 @@ def get_image(coord: tuple, spn: tuple, bbox=None) -> pg.surface.Surface:
 
     map_request = f"{server_address_card}apikey={api_key_card}" \
                   f"&ll={coord[0]},{coord[1]}&spn={spn[0]},{spn[1]}&size=650,450&theme={theme}"
+
+    # is_mark - нужна ли метка на карте или нет
+    if is_mark is not None:
+        map_request += f"&pt={coord[0]},{coord[1]},pm2vvl1"
 
     if bbox is not None:
         x1, y1 = bbox[0]
