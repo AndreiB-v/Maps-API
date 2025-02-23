@@ -77,6 +77,7 @@ def get_image(coord: tuple, spn: tuple, bbox=None, is_mark=None) -> pg.surface.S
 
     # Получаем цвет темы
     theme = get_theme()
+    view = get_view_map()
 
     map_request = f"{server_address_card}apikey={api_key_card}" \
                   f"&ll={coord[0]},{coord[1]}&spn={spn[0]},{spn[1]}&size=650,450&theme={theme}"
@@ -89,6 +90,13 @@ def get_image(coord: tuple, spn: tuple, bbox=None, is_mark=None) -> pg.surface.S
         x1, y1 = bbox[0]
         x2, y2 = bbox[1]
         map_request += f'&bbox={x1},{y1}~{x2},{y2}'
+
+    if view == "road":
+        map_request += "&style=tags.all:road|color:ff0000~tags.all:traffic_light|color:00ff00"
+    elif view == "transit":
+        map_request += "&style=tags.all:transit|color:0000ff~tags.all:transit_stop|color:ff00ff"
+    elif view == "admin":
+        map_request += "&style=tags.all:admin|color:0000ff"
 
     response = session.get(map_request)
 
@@ -150,3 +158,19 @@ def load_image(filename=str, mode=()) -> pg.surface.Surface:
             image.set_colorkey(color_key)
         image = image.convert_alpha()
     return image
+
+
+def get_view_map() -> str:
+    '''
+    Договоримся, что в джейсоне по ключу view могут лежать 4 вида карты и вот их названия
+    Это для того, что бы когда ты делал переключатели - было удобнее
+    1) Обычная карта - map (Ничего в запрос не будет добавляться)
+    2) Автомобильная карта - road
+    3) Карта общественного транспорта - transit
+    4) Административная карта - admin
+    '''
+
+    with open("settings.json") as file:
+        settings = json.load(file)
+    return settings['view']
+
