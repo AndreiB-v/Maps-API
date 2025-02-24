@@ -16,7 +16,7 @@ api_key_geosadjet = 'dda3ddba-c9ea-4ead-9010-f43fbc15c6e3'
 server_address_card = 'https://static-maps.yandex.ru/v1?'
 api_key_card = 'f3a0fe3a-b07e-4840-a1da-06f18b2ddf13'
 
-# Теперь все get запросы делать через переменную session, если нужно часто обращаться к одному и тому же сайту!
+# Теперь все get запросы делать через переменную session, если нужно часто обращаться к одному и тому же сайту!!
 session = requests.session()
 
 
