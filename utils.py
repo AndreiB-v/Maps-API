@@ -14,7 +14,7 @@ server_address_geosadjet = 'https://search-maps.yandex.ru/v1/?'
 api_key_geosadjet = 'dda3ddba-c9ea-4ead-9010-f43fbc15c6e3'
 # Яндекс карты
 server_address_card = 'https://static-maps.yandex.ru/v1?'
-api_key_card = '096cd594-8239-4812-a4a9-176415d47f14'
+api_key_card = 'f3a0fe3a-b07e-4840-a1da-06f18b2ddf13'
 
 # Теперь все get запросы делать через переменную session, если нужно часто обращаться к одному и тому же сайту!
 session = requests.session()
@@ -77,6 +77,7 @@ def get_image(coord: tuple, spn: tuple, bbox=None, is_mark=None) -> pg.surface.S
 
     # Получаем цвет темы
     theme = get_theme()
+    # Получаем вид карты
     view = get_view_map()
 
     map_request = f"{server_address_card}apikey={api_key_card}" \
@@ -92,12 +93,11 @@ def get_image(coord: tuple, spn: tuple, bbox=None, is_mark=None) -> pg.surface.S
         map_request += f'&bbox={x1},{y1}~{x2},{y2}'
 
     if view == "road":
-        map_request += "&style=tags.all:road|color:ff0000~tags.all:traffic_light|color:00ff00"
+        map_request += "&style=tags.all:road|elements:geometry.fill|stylers.color:0xffff1f~tags.all:poi|elements:label|stylers.visibility:off~tags.all:transit|elements:label|stylers.visibility:off"
     elif view == "transit":
-        map_request += "&style=tags.all:transit|color:0000ff~tags.all:transit_stop|color:ff00ff"
+        map_request += "&style=tags.any:road;poi;admin|elements:geometry|stylers.visibility:off~tags.any:road;poi|elements:label|stylers.visibility:off"
     elif view == "admin":
-        map_request += "&style=tags.all:admin|color:0000ff"
-
+        map_request += "&style=tags.any:road;poi;transit|elements:geometry|stylers.visibility:off~tags.any:road;poi;transit|elements:label|stylers.visibility:off"
     response = session.get(map_request)
 
     if not response:
@@ -173,4 +173,16 @@ def get_view_map() -> str:
     with open("settings.json") as file:
         settings = json.load(file)
     return settings['view']
+
+
+def change_view_map(sender) -> None:
+    '''В сендер передавай: или map, или road, или transit, или admin'''
+
+    with open("settings.json") as file:
+        settings = json.load(file)
+
+    settings["view"] = sender
+
+    with open("settings.json", "w") as file:
+        json.dump(settings, file)
 

@@ -2,6 +2,7 @@ import pygame as pg
 import utils as ut
 import numpy as np
 import UI
+from utils import change_view_map
 
 coordinates = ut.get_coord_by_name("Красная площадь, 1")
 current_spn = np.array([0.003, 0.003])
