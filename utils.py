@@ -72,19 +72,21 @@ def get_object_json(object_name: str) -> dict or None:
         return None
 
 
-def get_image(coord: tuple, spn: tuple, bbox=None, is_mark=None) -> pg.surface.Surface:
+def get_image(coord: tuple, spn: tuple, bbox=None) -> pg.surface.Surface:
     """Функция для отображения карты по заданным координатам"""
 
     # Получаем цвет темы
     theme = get_theme()
     # Получаем вид карты
     view = get_view_map()
+    # Получаем информауцию о том, нужна ли нам метка
+    is_mark = get_is_mark()
 
     map_request = f"{server_address_card}apikey={api_key_card}" \
                   f"&ll={coord[0]},{coord[1]}&spn={spn[0]},{spn[1]}&size=650,450&theme={theme}"
 
     # is_mark - нужна ли метка на карте или нет
-    if is_mark is not None:
+    if is_mark:
         map_request += f"&pt={coord[0]},{coord[1]},pm2vvl1"
 
     if bbox is not None:
@@ -186,3 +188,59 @@ def change_view_map(sender) -> None:
     with open("settings.json", "w") as file:
         json.dump(settings, file)
 
+
+def get_full_address(name_obj) -> str:
+    '''Функция для получения полного адресса по имени объекта'''
+
+    # Проверяем, нужен ли почтовый индекс в полном адрессе
+    is_index = get_is_index()
+
+    geocoder_request = f'{server_address_geocode}apikey={api_key_geocode}&geocode={name_obj}&format=json'
+    response = requests.get(geocoder_request)
+    if response:
+        json_response = response.json()
+        toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
+        full_address = toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
+        return full_address
+
+    return "Объект не найден"
+
+
+def get_is_mark() -> str:
+    '''Пусть будет принимать значения false или true'''
+
+    with open("settings.json") as file:
+        is_mark = json.load(file)["is_mark"]
+
+    return is_mark
+
+
+def change_is_mark() -> None:
+    with open("settings.json") as file:
+        settings = json.load(file)
+
+    is_mark = settings["is_mark"]
+    settings["is_mark"] = True if is_mark == False else True
+
+    with open("settings.json", "w") as file:
+        json.dump(settings, file)
+
+
+def get_is_index() -> str:
+    '''Индекс нужен для задания 10'''
+
+    with open("settings.json") as file:
+        is_index = json.load(file)["is_index"]
+
+    return is_index
+
+
+def change_is_index() -> None:
+    with open("settings.json") as file:
+        settings = json.load(file)
+
+    is_index = settings["is_index"]
+    settings["is_index"] = True if is_index == False else True
+
+    with open("settings.json", "w") as file:
+        json.dump(settings, file)

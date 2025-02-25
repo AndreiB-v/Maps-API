@@ -2,7 +2,7 @@ import pygame as pg
 import utils as ut
 import numpy as np
 import UI
-from utils import change_view_map
+from utils import get_full_address
 
 coordinates = ut.get_coord_by_name("Красная площадь, 1")
 current_spn = np.array([0.003, 0.003])
@@ -38,7 +38,9 @@ while running:
             x1, y1 = bbox[0]
             x2, y2 = bbox[1]
             current_spn = np.array([(x2 - x1) * 0.36, (y2 - y1) * 0.36])
+            ut.change_is_mark()
             current_image = ut.get_image(coordinates, current_spn)
+            print(get_full_address(text))
 
         if not text_input.active:
             if event.type == pg.KEYDOWN:
