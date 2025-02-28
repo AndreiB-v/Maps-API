@@ -201,6 +201,11 @@ def get_full_address(name_obj) -> str:
         json_response = response.json()
         toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
         full_address = toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
+
+        if is_index:
+            index = toponym["metaDataProperty"]["GeocoderMetaData"]["Address"]["postal_code"]
+            full_address += f" {index}"
+
         return full_address
 
     return "Объект не найден"
@@ -226,7 +231,7 @@ def change_is_mark() -> None:
         json.dump(settings, file)
 
 
-def get_is_index() -> str:
+def get_is_index() -> bool:
     '''Индекс нужен для задания 10'''
 
     with open("settings.json") as file:
