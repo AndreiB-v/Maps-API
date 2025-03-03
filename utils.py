@@ -1,3 +1,4 @@
+import math
 import os
 import sys
 import json
@@ -6,29 +7,171 @@ import pygame as pg
 import requests
 import numpy as np
 
-# Геокодер
-server_address_geocode = 'http://geocode-maps.yandex.ru/1.x/?'
-api_key_geocode = '8013b162-6b42-4997-9691-77b7074026e0'
-# Геосаджет
-server_address_geosadjet = 'https://search-maps.yandex.ru/v1/?'
-api_key_geosadjet = 'dda3ddba-c9ea-4ead-9010-f43fbc15c6e3'
-# Яндекс карты
-server_address_card = 'https://static-maps.yandex.ru/v1?'
-api_key_card = 'f3a0fe3a-b07e-4840-a1da-06f18b2ddf13'
-
 # Теперь все get запросы делать через переменную session, если нужно часто обращаться к одному и тому же сайту!!
 session = requests.session()
 
 
-def get_coord_by_name(object_name: str) -> np.array:
-    """Функция для получения координат объекта по его названию"""
+class Settings:
+    def __init__(self):
+        with open("settings.json", encoding='utf8') as file:
+            self.settings = json.load(file)
 
-    toponym = get_object_json(object_name)
-    if toponym is not None:
-        toponym_coordinates = toponym["featureMember"][0]["GeoObject"]["Point"]["pos"]
-        return np.array([float(i) for i in toponym_coordinates.split()])
-    else:
-        print(f'Не найдены координаты для {object_name}')
+    def save(self) -> None:
+        with open("settings.json", "w", encoding='utf8') as file:
+            json.dump(self.settings, file, ensure_ascii=False, indent=2)
+
+    # ___ПОЧТОВЫЙ ИНДЕКС___ #
+    def index(self) -> bool:
+        return self.settings['is_index']
+
+    def change_index(self) -> None:
+        self.settings["is_index"] = True if self.index() is False else False
+
+    # ___ВИД КАРТЫ___ #
+    def view(self) -> list:
+        return self.settings['view']
+
+    def change_view(self, param: str) -> None:
+        """Sender in ('road', 'transit', 'admin')"""
+
+        if param in self.settings["view"]:
+            self.settings["view"].remove(param)
+        else:
+            self.settings["view"].append(param)
+
+    # ___ТЕМА КАРТЫ___ #
+    def theme(self) -> str:
+        return self.settings['theme']
+
+    def change_theme(self) -> None:
+        self.settings["theme"] = "dark" if self.theme() == "light" else "light"
+
+    # ___ЦЕНТР КАРТЫ___ #
+    def center(self) -> list[int, int]:
+        return self.settings['center']
+
+    def change_center(self, new_center: np.array or list):
+        self.settings["center"] = list(new_center)
+
+    # ___РАЗМЕР КАРТЫ___ #
+    def spn(self) -> list[list[int, int], list[int, int]]:
+        return self.settings['spn']
+
+    def change_spn(self, new_spn: np.array or list):
+        self.settings["spn"] = list(new_spn)
+
+    # ___ТЕКУЩИЙ ОБЪЕКТ ПОИСКА___ #
+    def find_object(self):
+        return self.settings['object']
+
+    def find_object_name(self):
+        return self.settings['object_name']
+
+    def change_find_object(self, new_position: list):
+        self.settings['object'] = new_position
+
+    def change_find_object_name(self, new_name: str):
+        self.settings['object_name'] = new_name
+
+    # ___ЯВЛЯЕТСЯ ЛИ ОБЪЕКТ ПОИСКА ОРГАНИЗАЦИЕЙ___ #
+    def organization(self):
+        return self.settings['is_organization']
+
+    def change_organization(self, value: bool):
+        self.settings['is_organization'] = value
+
+
+class GeoSagest:
+    def __init__(self,
+                 api_key: str,
+                 settings: Settings):
+        self.api_key = api_key
+        self.server = "https://search-maps.yandex.ru/v1/"
+
+    def get_json(self, **params) -> dict:
+        """
+        Получить ближайшие географические объекты
+        Подробнее: https://yandex.ru/maps-api/docs/suggest-api/request.html
+        """
+        search_params = {"apikey": self.api_key,
+                         "text": "организация",
+                         "lang": "ru_RU"}
+        for key, param in params.items():
+            search_params[key] = param
+        response = session.get(self.server, params=search_params)
+        return response.json()
+
+
+class Geocoder:
+    def __init__(self,
+                 api_key: str,
+                 settings: Settings):
+        self.api_key = api_key
+        self.server = 'http://geocode-maps.yandex.ru/1.x/?'
+        self.settings = settings
+
+    def get_json(self, **params) -> dict:
+        """
+        Получить ближайшие географические объекты по адресу
+        Подробнее: https://yandex.ru/maps-api/docs/geocoder-api/response.html
+        """
+        search_params = {"apikey": self.api_key,
+                         "lang": "ru_RU",
+                         "format": "json"}
+        for key, param in params.items():
+            search_params[key] = param
+        response = session.get(self.server, params=search_params)
+        return response.json()
+
+
+class StaticAPI:
+    def __init__(self,
+                 api_key: str,
+                 settings: Settings):
+        self.api_key = api_key
+        self.server = 'https://static-maps.yandex.ru/v1?'
+
+        self.settings = settings
+
+    def get_image(self) -> pg.surface.Surface:
+        # ___ПАРАМЕТРЫ ПОИСКА___ #
+        coord = self.settings.center()
+        spn = self.settings.spn()
+        view = self.settings.view()
+        find_object = self.settings.find_object()
+        search_params = {'apikey': self.api_key,
+                         'theme': self.settings.theme(),
+                         'll': f'{coord[0]},{coord[1]}',
+                         'spn': f'{spn[0]},{spn[1]}',
+                         'size': f'650,450'}
+
+        if find_object:
+            print(find_object)
+            search_params['pt'] = f'{find_object[0]},{find_object[1]},ya_ru'
+
+        # ___ВИД КАРТЫ___ #
+        style = []
+        if "road" in view:
+            style.append(
+                'tags.all:road|elements:geometry.fill|stylers.color:32CD32~tags.all:poi|elements:label|stylers.visibility:off~tags.all:transit|elements:label|stylers.visibility:off')
+        if 'admin' in view:
+            style.append(
+                'tags.any:road;poi;transit|elements:geometry|stylers.visibility:off~tags.any:road;poi;transit|elements:label|stylers.visibility:off')
+        if "transit" in view:
+            style.append(
+                'tags.any:road;poi;admin|elements:geometry|stylers.visibility:off~tags.any:road;poi|elements:label|stylers.visibility:off')
+        if style:
+            search_params['style'] = '~'.join(style)
+
+        # ___ПОЛУЧАЕМ КАРТУ___ #
+        response = session.get(self.server, params=search_params)
+        map_file = "map.png"
+        with open(map_file, "wb") as file:
+            file.write(response.content)
+        current_image = pg.image.load(map_file)
+        os.remove(map_file)
+
+        return current_image
 
 
 def get_bbox_by_name(object_name: str) -> tuple:
@@ -40,21 +183,6 @@ def get_bbox_by_name(object_name: str) -> tuple:
         x1, y1 = (float(i) for i in bbox['lowerCorner'].split())
         x2, y2 = (float(i) for i in bbox['upperCorner'].split())
         return (x1, y1), (x2, y2)
-
-
-def get_organization_json(object_name: str) -> dict or None:
-    """Получить JSON объекта из геокодера на уровне GeoObjectCollection"""
-    # https://yandex.ru/maps-api/docs/geosearch-api/response.html
-
-    try:
-        request = f'{server_address_geosadjet}apikey={api_key_geosadjet}&text={object_name}&format=json&type=biz&lang=ru_RU'
-        print(request)
-        response = requests.get(request)
-        json_response = response.json()
-        print(json_response)
-        # return toponym
-    except Exception:
-        return None
 
 
 def get_object_json(object_name: str) -> dict or None:
@@ -70,75 +198,6 @@ def get_object_json(object_name: str) -> dict or None:
         return toponym
     except Exception:
         return None
-
-
-def get_image(coord: tuple, spn: tuple, bbox=None) -> pg.surface.Surface:
-    """Функция для отображения карты по заданным координатам"""
-
-    # Получаем цвет темы
-    theme = get_theme()
-    # Получаем вид карты
-    view = get_view_map()
-    # Получаем информауцию о том, нужна ли нам метка
-    is_mark = get_is_mark()
-
-    map_request = f"{server_address_card}apikey={api_key_card}" \
-                  f"&ll={coord[0]},{coord[1]}&spn={spn[0]},{spn[1]}&size=650,450&theme={theme}"
-
-    # is_mark - нужна ли метка на карте или нет
-    if is_mark:
-        map_request += f"&pt={coord[0]},{coord[1]},pm2vvl1"
-
-    if bbox is not None:
-        x1, y1 = bbox[0]
-        x2, y2 = bbox[1]
-        map_request += f'&bbox={x1},{y1}~{x2},{y2}'
-
-    if view == "road":
-        map_request += "&style=tags.all:road|elements:geometry.fill|stylers.color:0xffff1f~tags.all:poi|elements:label|stylers.visibility:off~tags.all:transit|elements:label|stylers.visibility:off"
-    elif view == "transit":
-        map_request += "&style=tags.any:road;poi;admin|elements:geometry|stylers.visibility:off~tags.any:road;poi|elements:label|stylers.visibility:off"
-    elif view == "admin":
-        map_request += "&style=tags.any:road;poi;transit|elements:geometry|stylers.visibility:off~tags.any:road;poi;transit|elements:label|stylers.visibility:off"
-    response = session.get(map_request)
-
-    if not response:
-        print("Ошибка выполнения запроса:")
-        print(map_request)
-        print("Http статус:", response.status_code, "(", response.reason, ")")
-        sys.exit(1)
-
-    # Запишем полученное изображение в файл.
-    map_file = "map.png"
-    with open(map_file, "wb") as file:
-        file.write(response.content)
-    current_image = pg.image.load(map_file)
-    os.remove(map_file)
-
-    return current_image
-
-
-def change_theme() -> None:
-    """Функция вызываемая кнопкой изменения темы"""
-
-    # Получаем json
-    with open("settings.json") as file:
-        settings = json.load(file)
-
-    theme = settings["theme"]
-    settings["theme"] = "dark" if theme == "light" else "light"
-
-    # Записываем в json
-    with open("settings.json", "w") as file:
-        json.dump(settings, file)
-
-
-def get_theme() -> str:
-    """Получить текущую тему"""
-
-    with open("settings.json") as file:
-        settings = json.load(file)
-    return settings['theme']
 
 
 # Функция для добавления изображений
@@ -162,85 +221,34 @@ def load_image(filename=str, mode=()) -> pg.surface.Surface:
     return image
 
 
-def get_view_map() -> str:
-    '''
-    Договоримся, что в джейсоне по ключу view могут лежать 4 вида карты и вот их названия
-    Это для того, что бы когда ты делал переключатели - было удобнее
-    1) Обычная карта - map (Ничего в запрос не будет добавляться)
-    2) Автомобильная карта - road
-    3) Карта общественного транспорта - transit
-    4) Административная карта - admin
-    '''
-
-    with open("settings.json") as file:
-        settings = json.load(file)
-    return settings['view']
-
-
-def change_view_map(sender) -> None:
-    '''В сендер передавай: или map, или road, или transit, или admin'''
-
-    with open("settings.json") as file:
-        settings = json.load(file)
-
-    settings["view"] = sender
-
-    with open("settings.json", "w") as file:
-        json.dump(settings, file)
+def json_value(find_key: str, json_items: dict or list, result, non_key=''):
+    if type(json_items) == dict:
+        if find_key in json_items.keys():
+            result.append(json_items[find_key])
+        for key in json_items.keys():
+            if key not in non_key:
+                json_value(find_key, json_items[key], result, non_key)
+    elif type(json_items) == list:
+        for item in json_items:
+            if type(item) == dict:
+                json_value(find_key, item, result, non_key)
+    return result
 
 
-def get_full_address(name_obj) -> str:
-    '''Функция для получения полного адресса по имени объекта'''
+def lonlat_distance(a, b):
+    degree_to_meters_factor = 111 * 1000  # 111 километров в метрах
+    a_lon, a_lat = a
+    b_lon, b_lat = b
 
-    # Проверяем, нужен ли почтовый индекс в полном адрессе
-    is_index = get_is_index()
+    # Берем среднюю по широте точку и считаем коэффициент для нее.
+    radians_lattitude = math.radians((a_lat + b_lat) / 2.)
+    lat_lon_factor = math.cos(radians_lattitude)
 
-    geocoder_request = f'{server_address_geocode}apikey={api_key_geocode}&geocode={name_obj}&format=json'
-    response = requests.get(geocoder_request)
-    if response:
-        json_response = response.json()
-        toponym = json_response["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]
-        full_address = toponym["metaDataProperty"]["GeocoderMetaData"]["text"]
-        return full_address
+    # Вычисляем смещения в метрах по вертикали и горизонтали.
+    dx = abs(a_lon - b_lon) * degree_to_meters_factor * lat_lon_factor
+    dy = abs(a_lat - b_lat) * degree_to_meters_factor
 
-    return "Объект не найден"
+    # Вычисляем расстояние между точками.
+    distance = math.sqrt(dx * dx + dy * dy)
 
-
-def get_is_mark() -> str:
-    '''Пусть будет принимать значения false или true'''
-
-    with open("settings.json") as file:
-        is_mark = json.load(file)["is_mark"]
-
-    return is_mark
-
-
-def change_is_mark() -> None:
-    with open("settings.json") as file:
-        settings = json.load(file)
-
-    is_mark = settings["is_mark"]
-    settings["is_mark"] = True if is_mark == False else True
-
-    with open("settings.json", "w") as file:
-        json.dump(settings, file)
-
-
-def get_is_index() -> str:
-    '''Индекс нужен для задания 10'''
-
-    with open("settings.json") as file:
-        is_index = json.load(file)["is_index"]
-
-    return is_index
-
-
-def change_is_index() -> None:
-    with open("settings.json") as file:
-        settings = json.load(file)
-
-    is_index = settings["is_index"]
-    settings["is_index"] = True if is_index == False else True
-
-    with open("settings.json", "w") as file:
-        json.dump(settings, file)
+    return distance

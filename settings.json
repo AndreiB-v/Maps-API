@@ -1,1 +1,19 @@
-{"theme": "light", "view": "map", "is_mark": false, "is_index": true}
+{
+  "theme": "dark",
+  "view": [],
+  "is_index": false,
+  "center": [
+    58.474675,
+    51.2293
+  ],
+  "spn": [
+    0.1509570000000002,
+    0.1046516400000013
+  ],
+  "object": [
+    58.474675,
+    51.2293
+  ],
+  "object_name": "Адрес: \"Россия, Оренбургская область, Орск\"",
+  "is_organization": false
+}
