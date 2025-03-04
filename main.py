@@ -1,6 +1,3 @@
-import math
-from math import degrees
-
 import pygame as pg
 import utils as ut
 import numpy as np
@@ -14,6 +11,8 @@ geocoder = ut.Geocoder('8013b162-6b42-4997-9691-77b7074026e0', settings)
 # Инициализируем pygame
 pg.init()
 screen = pg.display.set_mode((1080, 720))
+pg.display.set_caption('Yandex Maps API')
+pg.display.set_icon(pg.image.load('data/icon.png'))
 
 clock = pg.time.Clock()
 running = True
@@ -144,40 +143,6 @@ while running:
             current_image = pg.transform.scale(static_api.get_image(), (screen.get_size()))
 
         if not text_input.active:
-            if event.type == pg.KEYDOWN:
-
-                # Перемещение по X
-                if event.key == pg.K_d:
-                    if -179 < settings.center()[0] + settings.spn()[0] / 2 < 179:
-                        settings.settings['center'][0] += settings.spn()[0] / 2
-                    elif settings.center()[0] == 179:
-                        settings.settings['center'][0] = - 179
-                    else:
-                        settings.settings['center'][0] = 179
-                if event.key == pg.K_a:
-                    if -179 < settings.center()[0] - settings.spn()[0] / 2 < 179:
-                        settings.settings['center'][0] -= settings.spn()[0] / 2
-                    elif settings.center()[0] == - 179:
-                        settings.settings['center'][0] = 179
-                    else:
-                        settings.settings['center'][0] = - 179
-
-                # Перемещение по Y
-                if event.key == pg.K_w:
-                    if -80 < settings.center()[1] + settings.spn()[1] / 2 < 80:
-                        settings.settings['center'][1] += settings.spn()[1] / 2
-                    else:
-                        settings.settings['center'][1] = 80
-                if event.key == pg.K_s:
-                    if -80 < settings.center()[1] - settings.spn()[1] / 2 < 80:
-                        settings.settings['center'][1] -= settings.spn()[1] / 2
-                    else:
-                        settings.settings['center'][1] = - 80
-
-                # Общая проверка
-                if event.key in (pg.K_w, pg.K_s, pg.K_d, pg.K_a):
-                    current_image = pg.transform.scale(static_api.get_image(), (screen.get_size()))
-
             if event.type == pg.MOUSEBUTTONDOWN:
                 for sprite in list(button_layer) + list(find_layer):
                     if sprite.update(event.pos, 'down') == 'pressed':
@@ -218,15 +183,44 @@ while running:
                         func()
                         current_image = pg.transform.scale(static_api.get_image(), (screen.get_size()))
 
-    keys = pg.key.get_pressed()
-    if keys[pg.K_UP]:
-        if all(np.array(settings.spn()) * factor < 98):
-            settings.change_spn(np.array(settings.spn()) * factor)
-        current_image = pg.transform.scale(static_api.get_image(), (screen.get_size()))
-    if keys[pg.K_DOWN]:
-        if all(np.array(settings.spn()) / factor > 0):
-            settings.change_spn(np.array(settings.spn()) / factor)
-        current_image = pg.transform.scale(static_api.get_image(), (screen.get_size()))
+    if not text_input.active:
+        keys = pg.key.get_pressed()
+        if keys[pg.K_PAGEUP] or keys[1073741921] or keys[pg.K_q]:
+            if all(np.array(settings.spn()) * factor < 98):
+                settings.change_spn(np.array(settings.spn()) * factor)
+            current_image = pg.transform.scale(static_api.get_image(), (screen.get_size()))
+        if keys[pg.K_PAGEDOWN] or keys[1073741915] or keys[pg.K_e]:
+            if all(np.array(settings.spn()) / factor > 0):
+                settings.change_spn(np.array(settings.spn()) / factor)
+            current_image = pg.transform.scale(static_api.get_image(), (screen.get_size()))
+        if keys[pg.K_RIGHT] or keys[pg.K_d]:
+            if -179 < settings.center()[0] + settings.spn()[0] / 2 < 179:
+                settings.settings['center'][0] += settings.spn()[0] / 2
+            elif settings.center()[0] == 179:
+                settings.settings['center'][0] = - 179
+            else:
+                settings.settings['center'][0] = 179
+        if keys[pg.K_LEFT] or keys[pg.K_a]:
+            if -179 < settings.center()[0] - settings.spn()[0] / 2 < 179:
+                settings.settings['center'][0] -= settings.spn()[0] / 2
+            elif settings.center()[0] == - 179:
+                settings.settings['center'][0] = 179
+            else:
+                settings.settings['center'][0] = - 179
+        if keys[pg.K_UP] or keys[pg.K_w]:
+            if -80 < settings.center()[1] + settings.spn()[1] / 2 < 80:
+                settings.settings['center'][1] += settings.spn()[1] / 2
+            else:
+                settings.settings['center'][1] = 80
+        if keys[pg.K_DOWN] or keys[pg.K_s]:
+            if -80 < settings.center()[1] - settings.spn()[1] / 2 < 80:
+                settings.settings['center'][1] -= settings.spn()[1] / 2
+            else:
+                settings.settings['center'][1] = - 80
+        # Общая проверка
+        if any([keys[key] for key in [pg.K_PAGEUP, 1073741921, pg.K_PAGEDOWN, 1073741915, pg.K_RIGHT, pg.K_d,
+                                      pg.K_LEFT, pg.K_a, pg.K_UP, pg.K_w, pg.K_DOWN, pg.K_s, pg.K_q, pg.K_e]]):
+            current_image = pg.transform.scale(static_api.get_image(), (screen.get_size()))
 
     screen.fill((0, 0, 0))
     screen.blit(current_image, (0, 0))

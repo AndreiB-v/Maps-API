@@ -146,7 +146,6 @@ class StaticAPI:
                          'size': f'650,450'}
 
         if find_object:
-            print(find_object)
             search_params['pt'] = f'{find_object[0]},{find_object[1]},ya_ru'
 
         # ___ВИД КАРТЫ___ #
